@@ -14,14 +14,17 @@ namespace Disarray {
         public Dictionary<IPlayer, PlayerCard> cards { get; private set; }
         public List<UI> ui { get; private set; }
         public IPlayer[] players { get; private set; }
+        public List<string> log { get; private set; }
+
         public Game(int playerCount = 2) {
+            Console.CursorVisible = false;
             ui = new List<UI>();
             cards = new Dictionary<IPlayer, PlayerCard>();
-            this.players = new IPlayer[playerCount];
+            players = new IPlayer[playerCount];
             for (int i = 0; i < playerCount; i++) {
                 cards[players[i] = new Human()] = new PlayerCard(players[i]);
-
             }
+            log = new List<string>();
         }
         void Line(string message) {
             Console.WriteLine(message);
@@ -35,9 +38,17 @@ namespace Disarray {
             Console.WriteLine();
             Console.WriteLine();
             Console.WriteLine();
+            int i = 0;
             foreach (var u in ui) {
                 u.Print();
+                i++;
             }
+            while(i < 10) {
+                Console.WriteLine();
+                i++;
+            }
+            log.ForEach(l => Console.WriteLine(l));
+            Console.SetCursorPosition(0, 0);
 
         }
         void Run() {
@@ -50,14 +61,21 @@ namespace Disarray {
                     if (p.hp > 0) {
                         if (p == last) {
                             ui.Add(new Label($"Player {i + 1} won the war!"));
+                            Update();
                             active = false;
+
                         } else {
                             last = p;
+                            Label l = new Label($"It is Player {i + 1}'s turn.");
+                            ui.Add(l);
                             p.Play(this);
+                            ui.Remove(l);
                         }
                     }
                 }
             }
+
+            Console.ReadLine();
         }
     }
     interface UI {
@@ -135,7 +153,7 @@ namespace Disarray {
             defenses = new int[8];
         }
         private bool build(int index) {
-            if (defenses[index] < 8) {
+            if (defenses[index] < 9) {
                 defenses[index]++;
                 return true;
             } else {
@@ -153,7 +171,7 @@ namespace Disarray {
             }
         }
         public void Play(Game game) {
-            int actions = 5;
+            int actions = 1;
             Enter:
             {
                 HashSet<UI> ui = new HashSet<UI>();
@@ -177,14 +195,24 @@ namespace Disarray {
 
                 var key = Console.ReadKey();
                 switch (key.Key) {
-                    case ConsoleKey.Enter:
+                    case ConsoleKey.RightArrow:
                         selected = true;
                         switch (choice) {
-                            case 0: SelectWall(i => {
-                                if(build(i)) {
-                                    actions--;
+                            case 0:
+                                actions--;
+                                for(int i = 0; i < defenses.Length; i++) {
+                                    build(i);
                                 }
-                            });
+                                /*
+                                Label prompt = new Label("Select the defense to build");
+                                game.ui.Add(prompt);
+                                SelectWall(i => {
+                                    if(build(i)) {
+                                        actions--;
+                                    }
+                                });
+                                game.ui.Remove(prompt);
+                                */
                                 goto Select;
                             case 1: Attack(); goto Select;
                         }
@@ -220,7 +248,7 @@ namespace Disarray {
                 game.Update();
                 var key = Console.ReadKey();
                 switch (key.Key) {
-                    case ConsoleKey.Enter:
+                    case ConsoleKey.UpArrow:
                         act(choice);
                         game.cards[this].pointer = choice;
                         goto Select;
@@ -236,7 +264,7 @@ namespace Disarray {
                         }
                         game.cards[this].pointer = choice;
                         goto Select;
-                    case ConsoleKey.Escape:
+                    case ConsoleKey.DownArrow:
                         break;
                     default:
                         goto Select;
@@ -286,6 +314,11 @@ namespace Disarray {
                 Label prompt = new Label("Select the defense to launch");
                 game.ui.Add(prompt);
                 SelectWall(launched => {
+                    if(defenses[launched] == 0) {
+                        return;
+                    }
+                    game.cards[this].pointer = null;
+
                     Label prompt2 = new Label("Select the player to target");
                     game.ui.Add(prompt2);
                     int choice = 0;
@@ -298,8 +331,12 @@ namespace Disarray {
                     game.Update();
                     var key = Console.ReadKey();
                     switch (key.Key) {
-                        case ConsoleKey.Enter:
+                        case ConsoleKey.UpArrow:
                             IPlayer target = game.players[choice];
+
+                            if(target.hp == 0) {
+                                goto Select;
+                            }
                             ClearPointer();
                             Label prompt3 = new Label("Select the defense to target");
                             game.ui.Add(prompt3);
@@ -307,13 +344,21 @@ namespace Disarray {
                                 actions--;
                                 ref int attack = ref defenses[launched];
                                 ref int defense = ref target.defenses[targeted];
+                                /*
+                                game.log.AddRange(new[] {
+                                    $"Launched: {launched}",
+                                    $"Launched HP: {defenses[launched]}",
+                                    $"Attacked: {targeted}",
+                                    $"Attacked HP: {target.defenses[targeted]}"
+                                });
+                                */
                                 int extra;
                                 if (defense >= attack) {
                                     defense -= attack;
                                     extra = 0;
                                 } else {
-                                    defense = 0;
                                     extra = attack - defense;
+                                    defense = 0;
                                 }
                                 attack = 0;
                                 target.hp -= extra;
@@ -321,6 +366,14 @@ namespace Disarray {
                                     target.hp = 0;
                                     actions = 0;
                                 }
+                                /*
+                                game.log.AddRange(new[] {
+                                    $"Launched: {launched}",
+                                    $"Launched HP: {defenses[launched]}",
+                                    $"Attacked: {targeted}",
+                                    $"Attacked HP: {target.defenses[targeted]}"
+                                });
+                                */
                             });
                             game.ui.Remove(prompt3);
                             SetPointer();
@@ -339,7 +392,7 @@ namespace Disarray {
                             }
                             SetPointer();
                             goto Select;
-                        case ConsoleKey.Escape:
+                        case ConsoleKey.DownArrow:
                             break;
                         default:
                             goto Select;
@@ -363,8 +416,8 @@ namespace Disarray {
                         game.Update();
                         var key2 = Console.ReadKey();
                         switch (key2.Key) {
-                            case ConsoleKey.Enter:
-                                act(choice);
+                            case ConsoleKey.UpArrow:
+                                act(choice2);
                                 break;
                             case ConsoleKey.RightArrow:
                                 choice2++;
@@ -378,7 +431,7 @@ namespace Disarray {
                                 }
                                 game.cards[player].pointer = choice2;
                                 goto Select2;
-                            case ConsoleKey.Escape:
+                            case ConsoleKey.DownArrow:
                                 break;
                             default:
                                 goto Select2;
