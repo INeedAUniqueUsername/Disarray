@@ -10,3 +10,5 @@ A minimalistic CLI-based strategy game where the best defense makes a good offen
   - If the targeted Defense reaches 0 HP, any remaining damage is dealt to the target player's Core HP.
     - Idea: Remaining damage must be at least 2 HP
   - The launched Defense is reset to 0 HP.
+- Players with 0 HP are destroyed
+- Last player alive wins
