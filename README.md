@@ -1,5 +1,5 @@
 # ` [ D I S A R R A Y ] `
-A minimalistic CLI-based strategy game where the best defense makes a good offense.
+A minimal CLI-based 1v1 strategy game where the best defense makes a good offense.
 # Rules
 - Each player starts with 16 Core HP and 8 Defenses, each starting at level 4.
 - Players take turns spending Action points on Building and Attacking
